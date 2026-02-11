@@ -317,6 +317,11 @@ SQL
 }
 
 print_access_summary() {
+  local reboot_note="${REBOOT_REQUIRED}"
+  if [[ "${REBOOT_REQUIRED}" == "yes" ]]; then
+    reboot_note="${REBOOT_REQUIRED} (recommended: reboot now to load updated binaries)"
+  fi
+
   write_credentials_file "${SUMMARY_FILE}" "$(cat <<SUMMARY
 BreachRabbit Panel bootstrap complete.
 
@@ -327,7 +332,7 @@ BreachRabbit Panel bootstrap complete.
 | MariaDB Root | localhost:3306 | root | ${DB_ROOT_PASS} |
 | Adminer | ${ADMINER_URL} | root | ${DB_ROOT_PASS} |
 | Panel env file | /opt/breachrabbit/config/.env | NEXTAUTH_SECRET | ${APP_SECRET} |
-| Reboot required | system status | - | ${REBOOT_REQUIRED} |
+| Reboot required | system status | - | ${reboot_note} |
 
 Saved: ${SUMMARY_FILE}
 SUMMARY
@@ -336,10 +341,6 @@ SUMMARY
   printf '\n%s\n\n' "============================================================"
   cat "${SUMMARY_FILE}"
   printf '%s\n' "============================================================"
-
-  if [[ "${REBOOT_REQUIRED}" == "yes" ]]; then
-    warn "System reports reboot-required. Recommended: reboot now to load updated binaries."
-  fi
 }
 
 deploy_panel_app() {
@@ -400,9 +401,8 @@ main() {
   configure_initial_services
   deploy_panel_app
   manual_set_mariadb_root_password
-  print_access_summary
-
   log "Done. Panel is deployed and running in background via breachrabbit-panel service."
+  print_access_summary
 }
 
 main "$@"
