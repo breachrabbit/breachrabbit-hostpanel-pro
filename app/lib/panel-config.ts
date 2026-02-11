@@ -1,7 +1,10 @@
 export const SYSTEM_CHANGES_ALLOWED = process.env.PANEL_ALLOW_SYSTEM_CHANGES === 'true';
 
-export const RESTART_COMMAND = process.env.PANEL_RESTART_COMMAND ?? 'systemctl restart breachrabbit-panel';
-export const NGINX_RELOAD_COMMAND = process.env.PANEL_NGINX_RELOAD_COMMAND ?? 'systemctl reload nginx';
+export const RESTART_COMMAND =
+  process.env.PANEL_RESTART_COMMAND ??
+  'systemctl restart nginx openlitespeed breachrabbit-panel || systemctl restart nginx lshttpd breachrabbit-panel';
+export const NGINX_RELOAD_COMMAND =
+  process.env.PANEL_NGINX_RELOAD_COMMAND ?? 'nginx -t && systemctl reload nginx';
 
 export const DOMAIN_ROOT = process.env.PANEL_DOMAINS_ROOT ?? '/etc/nginx/sites-available';
 export const NGINX_ENABLED_ROOT = process.env.PANEL_NGINX_ENABLED_ROOT ?? '/etc/nginx/sites-enabled';
@@ -23,10 +26,4 @@ export function normalizeDomain(input: string) {
   return input.trim().toLowerCase();
 }
 
-export function commandParts(command: string) {
-  const parts = command.trim().split(/\s+/);
-  return {
-    bin: parts[0],
-    args: parts.slice(1)
-  };
-}
+export const PANEL_ENV_FILE_PATH = process.env.PANEL_ENV_FILE_PATH ?? '/opt/breachrabbit/config/.env';

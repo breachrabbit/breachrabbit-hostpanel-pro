@@ -1,7 +1,5 @@
-import { execFile } from 'node:child_process';
 import { mkdir, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { promisify } from 'node:util';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   DOMAIN_PATTERN,
@@ -12,17 +10,10 @@ import {
   PANEL_TARGET_URL,
   SITE_ROOT,
   SYSTEM_CHANGES_ALLOWED,
-  commandParts,
   normalizeDomain
 } from '@/app/lib/panel-config';
 import { upsertDomainRegistry } from '@/app/lib/domain-registry';
-
-const execFileAsync = promisify(execFile);
-
-async function runCommand(command: string, timeout = 30_000) {
-  const { bin, args } = commandParts(command);
-  return execFileAsync(bin, args, { timeout });
-}
+import { runSystemCommand } from '@/app/lib/system-command';
 
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as
@@ -138,7 +129,17 @@ export async function POST(request: NextRequest) {
     await writeFile(siteIndexPath, demoPage, 'utf8');
   }
 
-  await runCommand(NGINX_RELOAD_COMMAND);
+  try {
+    await runSystemCommand(NGINX_RELOAD_COMMAND);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Failed to reload Nginx after domain creation'
+      },
+      { status: 500 }
+    );
+  }
 
   let certStatus: 'active' | 'failed' | 'none' = 'none';
   let certIssuedAt: string | null = null;
@@ -146,19 +147,9 @@ export async function POST(request: NextRequest) {
 
   if (issueCertificate) {
     try {
-      await execFileAsync(
-        'certbot',
-        [
-          '--nginx',
-          '-d',
-          domain,
-          '--non-interactive',
-          '--agree-tos',
-          '--redirect',
-          '-m',
-          PANEL_CERTBOT_EMAIL
-        ],
-        { timeout: 180_000 }
+      await runSystemCommand(
+        `certbot --nginx -d ${domain} --non-interactive --agree-tos --redirect -m ${PANEL_CERTBOT_EMAIL}`,
+        180_000
       );
 
       certStatus = 'active';

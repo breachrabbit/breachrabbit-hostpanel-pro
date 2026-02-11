@@ -1,9 +1,6 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { NextRequest, NextResponse } from 'next/server';
 import { DATABASE_PATTERN, SYSTEM_CHANGES_ALLOWED } from '@/app/lib/panel-config';
-
-const execFileAsync = promisify(execFile);
+import { runMysqlCli } from '@/app/lib/mysql-cli';
 
 function normalizeDbName(input: string) {
   return input.trim();
@@ -45,10 +42,9 @@ export async function POST(request: NextRequest) {
   const sql = `CREATE DATABASE IF NOT EXISTS \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`;
 
   try {
-    await execFileAsync(
-      'mysql',
+    await runMysqlCli(
       ['-h', dbHost, '-P', dbPort, '-u', dbUser, ...(dbPassword ? [`-p${dbPassword}`] : []), '-e', sql],
-      { timeout: 30_000 }
+      30_000
     );
 
     return NextResponse.json({
@@ -60,10 +56,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (dbUser === 'root') {
       try {
-        await execFileAsync(
-          'mysql',
+        await runMysqlCli(
           ['--protocol=socket', '-u', 'root', ...(dbPassword ? [`-p${dbPassword}`] : []), '-e', sql],
-          { timeout: 30_000 }
+          30_000
         );
 
         return NextResponse.json({
