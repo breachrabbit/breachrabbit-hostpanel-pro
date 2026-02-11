@@ -79,3 +79,17 @@
 - Fixed the domain creation form behavior: `Bind domain to panel` is now disabled by default so the default flow creates a static demo site.
 - Updated domain creation API so demo site files and the site folder are created whenever `Create demo website` is enabled, regardless of panel binding mode.
 - Domain registry `demoSite` flag now directly reflects the selected form option without extra filtering.
+
+## 2026-02-11 (update 7)
+
+### RU
+- Блок управления БД в панели переработан в табы `MySQL` и `Redis` в стиле, близком к примеру: отдельный интерфейс для MySQL-операций и отдельный для Redis.
+- Во вкладке `MySQL` добавлены: создание БД (`Add DB`), смена `root`-пароля и кнопка быстрого перехода в Adminer.
+- Добавлен API `POST /api/databases/root-password` для смены пароля `root@localhost` через SQL-команду.
+- Во вкладке `Redis` добавлена форма `Add key` (DB index, key, value, TTL) и API `POST /api/redis/keys` для записи ключей через `redis-cli`.
+
+### EN
+- The panel database block was redesigned into `MySQL` and `Redis` tabs in a style close to the provided example: separate MySQL and Redis management views.
+- The `MySQL` tab now includes database creation (`Add DB`), `root` password change, and a quick Adminer button.
+- Added `POST /api/databases/root-password` endpoint to update `root@localhost` password via SQL.
+- The `Redis` tab now includes an `Add key` form (DB index, key, value, TTL) and `POST /api/redis/keys` endpoint that writes keys via `redis-cli`.
