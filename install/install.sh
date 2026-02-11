@@ -236,8 +236,8 @@ REDIS_URL=redis://127.0.0.1:6379
 OLS_API_BASE_URL=http://127.0.0.1:7080
 AEZA_API_KEY=CHANGE_ME
 PANEL_ALLOW_SYSTEM_CHANGES=true
-PANEL_RESTART_COMMAND=systemctl restart breachrabbit-panel
-PANEL_NGINX_RELOAD_COMMAND=systemctl reload nginx
+PANEL_RESTART_COMMAND=systemctl restart nginx openlitespeed breachrabbit-panel || systemctl restart nginx lshttpd breachrabbit-panel
+PANEL_NGINX_RELOAD_COMMAND=nginx -t && systemctl reload nginx
 PANEL_DOMAINS_ROOT=/etc/nginx/sites-available
 PANEL_NGINX_ENABLED_ROOT=/etc/nginx/sites-enabled
 PANEL_SITES_ROOT=/opt/breachrabbit/sites
@@ -246,6 +246,7 @@ PANEL_TARGET_URL=http://127.0.0.1:3000
 PANEL_CERTBOT_EMAIL=admin@${HOST_IP}.nip.io
 PANEL_MAIN_SITE_CONFIG_PATH=/etc/nginx/sites-available/breachrabbit-panel.conf
 PANEL_MAIN_SITE_ENABLED_PATH=/etc/nginx/sites-enabled/breachrabbit-panel.conf
+PANEL_ENV_FILE_PATH=/opt/breachrabbit/config/.env
 ENV
   chmod 600 /opt/breachrabbit/config/.env
 

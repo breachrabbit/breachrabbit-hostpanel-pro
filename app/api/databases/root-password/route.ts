@@ -1,12 +1,25 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { readFile, writeFile } from 'node:fs/promises';
 import { NextRequest, NextResponse } from 'next/server';
-import { SYSTEM_CHANGES_ALLOWED } from '@/app/lib/panel-config';
-
-const execFileAsync = promisify(execFile);
+import { PANEL_ENV_FILE_PATH, SYSTEM_CHANGES_ALLOWED } from '@/app/lib/panel-config';
+import { runMysqlCli } from '@/app/lib/mysql-cli';
 
 function escapeSqlString(input: string) {
   return input.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+async function updateEnvDbPassword(password: string) {
+  const existing = await readFile(PANEL_ENV_FILE_PATH, 'utf8').catch(() => '');
+
+  if (!existing.trim()) {
+    return;
+  }
+
+  const hasDbPassword = /^DB_PASSWORD=/m.test(existing);
+  const next = hasDbPassword
+    ? existing.replace(/^DB_PASSWORD=.*$/m, `DB_PASSWORD=${password}`)
+    : `${existing.trimEnd()}\nDB_PASSWORD=${password}\n`;
+
+  await writeFile(PANEL_ENV_FILE_PATH, next, 'utf8');
 }
 
 export async function POST(request: NextRequest) {
@@ -41,24 +54,26 @@ export async function POST(request: NextRequest) {
   const sql = `ALTER USER 'root'@'localhost' IDENTIFIED BY '${escapedPassword}'; FLUSH PRIVILEGES;`;
 
   try {
-    await execFileAsync(
-      'mysql',
+    await runMysqlCli(
       ['-h', dbHost, '-P', dbPort, '-u', dbUser, ...(dbPassword ? [`-p${dbPassword}`] : []), '-e', sql],
-      { timeout: 30_000 }
+      30_000
     );
+
+    await updateEnvDbPassword(password);
 
     return NextResponse.json({
       status: 'ok',
-      message: 'MySQL root password updated for root@localhost.',
+      message: 'MySQL root password updated for root@localhost and synced to panel .env.',
       authMode: 'tcp'
     });
   } catch {
     try {
-      await execFileAsync('mysql', ['--protocol=socket', '-u', 'root', '-e', sql], { timeout: 30_000 });
+      await runMysqlCli(['--protocol=socket', '-u', 'root', '-e', sql], 30_000);
+      await updateEnvDbPassword(password);
 
       return NextResponse.json({
         status: 'ok',
-        message: 'MySQL root password updated for root@localhost via socket auth.',
+        message: 'MySQL root password updated via socket auth and synced to panel .env.',
         authMode: 'socket'
       });
     } catch (error) {

@@ -1,6 +1,4 @@
-import { execFile } from 'node:child_process';
 import { readFile, symlink, writeFile } from 'node:fs/promises';
-import { promisify } from 'node:util';
 import { NextRequest, NextResponse } from 'next/server';
 import {
   DOMAIN_PATTERN,
@@ -10,16 +8,9 @@ import {
   PANEL_MAIN_SITE_ENABLED_PATH,
   PANEL_TARGET_URL,
   SYSTEM_CHANGES_ALLOWED,
-  commandParts,
   normalizeDomain
 } from '@/app/lib/panel-config';
-
-const execFileAsync = promisify(execFile);
-
-async function runCommand(command: string, timeout = 30_000) {
-  const { bin, args } = commandParts(command);
-  return execFileAsync(bin, args, { timeout });
-}
+import { runSystemCommand } from '@/app/lib/system-command';
 
 function ensureSnippets(config: string) {
   let nextConfig = config;
@@ -91,25 +82,26 @@ export async function POST(request: NextRequest) {
     // ignore when symlink already exists
   }
 
-  await runCommand(NGINX_RELOAD_COMMAND);
+  try {
+    await runSystemCommand(NGINX_RELOAD_COMMAND);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        status: 'error',
+        message:
+          error instanceof Error ? error.message : 'Failed to validate/reload Nginx after panel domain update'
+      },
+      { status: 500 }
+    );
+  }
 
   let certificateStatus: 'active' | 'failed' | 'none' = 'none';
 
   if (issueCertificate) {
     try {
-      await execFileAsync(
-        'certbot',
-        [
-          '--nginx',
-          '-d',
-          domain,
-          '--non-interactive',
-          '--agree-tos',
-          '--redirect',
-          '-m',
-          PANEL_CERTBOT_EMAIL
-        ],
-        { timeout: 180_000 }
+      await runSystemCommand(
+        `certbot --nginx -d ${domain} --non-interactive --agree-tos --redirect -m ${PANEL_CERTBOT_EMAIL}`,
+        180_000
       );
       certificateStatus = 'active';
     } catch {

@@ -136,3 +136,19 @@
 - Fixed log parsing in `GET /api/logs`: now correctly handles lines provided in `level\tsource\tmessage` format (for example from table exports), so level/source/message are shown as separate fields.
 - Added input line normalization for logs: supports both regular newlines and escaped `\\n`, and filters out the helper header row `Level\tSource\tMessage`.
 - Preserved fallback mode for unstructured lines: level is still detected heuristically and source defaults to the current log file path.
+
+## 2026-02-12 (update 11)
+
+### RU
+- Исправлены server-команды панели: перезапуск теперь выполняется через shell-команду с fallback для `openlitespeed/lshttpd`, а reload Nginx всегда проходит через `nginx -t && systemctl reload nginx`.
+- Починена цепочка работы MySQL после смены root-пароля: API `POST /api/databases/root-password` теперь синхронизирует `DB_PASSWORD` в panel `.env`, чтобы последующее создание БД не ломалось на старом пароле.
+- Добавлен fallback `mariadb` CLI для API MySQL-операций (`/api/databases/create`, `/api/databases/root-password`) на серверах, где бинарь `mysql` отсутствует.
+- Усилена надежность доменных операций (`/api/domains/create`, `/api/panel/domain`): команды reload/certbot выполняются через shell, ошибки reload возвращаются явно в API-ответ.
+- `install/install.sh` обновлен: значения `PANEL_RESTART_COMMAND`, `PANEL_NGINX_RELOAD_COMMAND` и `PANEL_ENV_FILE_PATH` приведены к новым рабочим дефолтам.
+
+### EN
+- Fixed panel server commands: restart now runs via a shell command with `openlitespeed/lshttpd` fallback, and Nginx reload always goes through `nginx -t && systemctl reload nginx`.
+- Fixed MySQL workflow after root password change: `POST /api/databases/root-password` now syncs `DB_PASSWORD` in panel `.env` so subsequent DB creation does not fail due to stale credentials.
+- Added `mariadb` CLI fallback for MySQL APIs (`/api/databases/create`, `/api/databases/root-password`) on hosts where `mysql` binary is not available.
+- Improved domain-operation reliability (`/api/domains/create`, `/api/panel/domain`): reload/certbot commands now run through shell execution and reload failures are returned explicitly in API responses.
+- Updated `install/install.sh`: `PANEL_RESTART_COMMAND`, `PANEL_NGINX_RELOAD_COMMAND`, and `PANEL_ENV_FILE_PATH` defaults are aligned with the new working behavior.

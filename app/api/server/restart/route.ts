@@ -1,19 +1,6 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { NextResponse } from 'next/server';
-
-const execFileAsync = promisify(execFile);
-
-const RESTART_COMMAND = process.env.PANEL_RESTART_COMMAND ?? 'systemctl restart breachrabbit-panel';
-const SYSTEM_CHANGES_ALLOWED = process.env.PANEL_ALLOW_SYSTEM_CHANGES === 'true';
-
-function commandParts(command: string) {
-  const parts = command.trim().split(/\s+/);
-  return {
-    bin: parts[0],
-    args: parts.slice(1)
-  };
-}
+import { RESTART_COMMAND, SYSTEM_CHANGES_ALLOWED } from '@/app/lib/panel-config';
+import { runSystemCommand } from '@/app/lib/system-command';
 
 export async function POST() {
   if (!SYSTEM_CHANGES_ALLOWED) {
@@ -26,14 +13,13 @@ export async function POST() {
   }
 
   try {
-    const { bin, args } = commandParts(RESTART_COMMAND);
-    const { stdout, stderr } = await execFileAsync(bin, args, { timeout: 30_000 });
+    const { stdout, stderr } = await runSystemCommand(RESTART_COMMAND, 60_000);
 
     return NextResponse.json({
       status: 'ok',
       command: RESTART_COMMAND,
-      stdout: stdout.trim(),
-      stderr: stderr.trim(),
+      stdout,
+      stderr,
       message: 'Server restart command executed.'
     });
   } catch (error) {
