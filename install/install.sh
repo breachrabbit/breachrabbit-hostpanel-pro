@@ -24,6 +24,10 @@ log() {
   printf '\n[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
 }
 
+warn() {
+  printf '\n[WARN] %s\n' "$*"
+}
+
 random_password() {
   openssl rand -base64 24 | tr -d '=+/' | cut -c1-20
 }
@@ -33,6 +37,40 @@ write_credentials_file() {
   local content="$2"
   umask 077
   printf '%s\n' "$content" > "$file"
+}
+
+enable_and_start_service() {
+  local svc="$1"
+
+  if ! systemctl list-unit-files --type=service | awk '{print $1}' | grep -qx "${svc}.service"; then
+    warn "Service unit ${svc}.service not found, skipping"
+    return 0
+  fi
+
+  systemctl enable --now "${svc}.service"
+}
+
+start_openlitespeed() {
+  # On different distros/packaging versions unit name may differ.
+  # We avoid alias errors like: "Refusing to operate on alias name ... lsws.service"
+  if systemctl list-unit-files --type=service | awk '{print $1}' | grep -qx 'openlitespeed.service'; then
+    systemctl enable --now openlitespeed.service
+    return
+  fi
+
+  if systemctl list-unit-files --type=service | awk '{print $1}' | grep -qx 'lshttpd.service'; then
+    systemctl enable --now lshttpd.service
+    return
+  fi
+
+  # IMPORTANT: do not enable/start lsws.service directly because on many hosts
+  # it is an alias/linked unit and `systemctl enable lsws` fails.
+  if [[ -x /usr/local/lsws/bin/lswsctrl ]]; then
+    /usr/local/lsws/bin/lswsctrl start || true
+    return
+  fi
+
+  warn "OpenLiteSpeed service unit not found (or only alias exists); install may be incomplete"
 }
 
 install_phase_updates() {
@@ -67,20 +105,21 @@ install_phase_stack() {
   # Optional: admin UI for DB
   DEBIAN_FRONTEND=noninteractive apt-get install -y adminer || true
 
-  systemctl enable --now lsws
-  systemctl enable --now nginx
-  systemctl enable --now mariadb
-  systemctl enable --now redis-server
-  systemctl enable --now cron
+  start_openlitespeed
+  enable_and_start_service nginx
+  enable_and_start_service mariadb
+  enable_and_start_service redis-server
+  enable_and_start_service cron
 }
 
 configure_initial_services() {
   log "Phase 4/4: Initial configuration and credentials"
 
-  local ols_admin_pass db_root_pass app_secret adminer_url summary_file
+  local ols_admin_pass db_root_pass app_secret adminer_url summary_file reboot_required
   ols_admin_pass="$(random_password)"
   db_root_pass="$(random_password)"
   app_secret="$(random_password)$(random_password)"
+  reboot_required="no"
 
   # OpenLiteSpeed admin password
   if [[ -x /usr/local/lsws/admin/misc/admpass.sh ]]; then
@@ -169,6 +208,10 @@ SNIP
     adminer_url="Not installed"
   fi
 
+  if [[ -f /var/run/reboot-required ]]; then
+    reboot_required="yes"
+  fi
+
   summary_file="/root/breachrabbit-install-summary.txt"
   write_credentials_file "$summary_file" "$(cat <<SUMMARY
 BreachRabbit Panel bootstrap complete.
@@ -180,6 +223,7 @@ BreachRabbit Panel bootstrap complete.
 | MariaDB Root | localhost:3306 | root | ${db_root_pass} |
 | Adminer | ${adminer_url} | root | ${db_root_pass} |
 | Panel env file | /opt/breachrabbit/config/.env | APP_SECRET | ${app_secret} |
+| Reboot required | system status | - | ${reboot_required} |
 
 Saved: ${summary_file}
 SUMMARY
@@ -188,6 +232,10 @@ SUMMARY
   printf '\n%s\n\n' "============================================================"
   cat "$summary_file"
   printf '%s\n' "============================================================"
+
+  if [[ "${reboot_required}" == "yes" ]]; then
+    warn "System reports reboot-required. Recommended: reboot now to load updated binaries."
+  fi
 }
 
 main() {
