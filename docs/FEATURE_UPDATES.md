@@ -17,3 +17,15 @@
 - README was translated and restructured into bilingual RU/EN format with language selector at the top.
 
 > Update this file after each newly added function is verified to work correctly.
+
+## 2026-02-11 (update 2)
+
+### RU
+- Исправлено отображение новых доменов в таблице: страница `/domains` переведена в динамический режим (`force-dynamic`), чтобы не отдавать закэшированный список.
+- Для API списка доменов `/api/domains` отключено статическое кэширование через `force-dynamic`.
+- У ссылки на страницу доменов отключен `prefetch`, чтобы не подхватывался устаревший префетченный снапшот до создания домена.
+
+### EN
+- Fixed new-domain visibility in the table: `/domains` page now uses dynamic rendering (`force-dynamic`) to avoid stale cached registry output.
+- Disabled static caching for `/api/domains` list endpoint with `force-dynamic`.
+- Disabled `prefetch` on the domains link to prevent navigating to an outdated prefetched snapshot created before domain creation.
