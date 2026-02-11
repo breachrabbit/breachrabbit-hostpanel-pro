@@ -39,6 +39,19 @@ write_credentials_file() {
   printf '%s\n' "$content" > "$file"
 }
 
+safe_enable_and_start_unit() {
+  local unit="$1"
+
+  # Some packages expose alias/linked unit names that cannot be enabled.
+  # In that case, start the service without enable.
+  if systemctl enable --now "$unit"; then
+    return 0
+  fi
+
+  warn "Could not enable ${unit} (possibly alias/linked). Trying start-only."
+  systemctl start "$unit"
+}
+
 enable_and_start_service() {
   local svc="$1"
 
@@ -47,19 +60,19 @@ enable_and_start_service() {
     return 0
   fi
 
-  systemctl enable --now "${svc}.service"
+  safe_enable_and_start_unit "${svc}.service"
 }
 
 start_openlitespeed() {
   # On different distros/packaging versions unit name may differ.
   # We avoid alias errors like: "Refusing to operate on alias name ... lsws.service"
   if systemctl list-unit-files --type=service | awk '{print $1}' | grep -qx 'openlitespeed.service'; then
-    systemctl enable --now openlitespeed.service
+    safe_enable_and_start_unit openlitespeed.service
     return
   fi
 
   if systemctl list-unit-files --type=service | awk '{print $1}' | grep -qx 'lshttpd.service'; then
-    systemctl enable --now lshttpd.service
+    safe_enable_and_start_unit lshttpd.service
     return
   fi
 
