@@ -56,3 +56,34 @@ And prepares skeleton env for the panel in:
 - If you previously saw `Refusing to operate on alias name or linked unit file: lsws.service`, pull latest installer and rerun it.
 - If you saw the same error for `openlitespeed.service`, this is also handled now: installer falls back to start-only when enable is rejected for alias/linked units.
 - The installer now auto-detects the proper OpenLiteSpeed unit (`openlitespeed.service` / `lshttpd.service`) and intentionally does not enable `lsws.service` aliases; it falls back to `lswsctrl` when needed.
+
+## Post-install verification checklist
+
+After reboot, run:
+
+```bash
+systemctl status openlitespeed nginx mariadb redis-server cron --no-pager || systemctl status lshttpd nginx mariadb redis-server cron --no-pager
+```
+
+Expected result: all listed services should be `active (running)`.
+
+### MariaDB warning after root password change
+
+You may see this line in `systemctl status mariadb` logs:
+
+`Access denied for user 'root'@'localhost' (using password: NO)`
+
+This appears because Ubuntu's `/etc/mysql/debian-start` tries local checks without your custom root password. In this installer flow, root auth is intentionally switched to password mode, so this warning can appear while MariaDB itself remains healthy.
+
+Verify real DB health with:
+
+```bash
+mysql -uroot -p -e "SELECT VERSION();"
+mysqladmin -uroot -p ping
+```
+
+If both commands succeed, MariaDB is operational for the panel.
+
+## Next step after successful install
+
+Deploy your Next.js panel code into `/opt/breachrabbit`, configure app `.env` values, and run the app on port `3000` so nginx proxy (`http://SERVER_IP`) serves your panel.
