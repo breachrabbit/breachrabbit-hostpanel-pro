@@ -84,6 +84,39 @@ mysqladmin -uroot -p ping
 
 If both commands succeed, MariaDB is operational for the panel.
 
-## Next step after successful install
+## Next step after successful install (Next.js panel)
 
-Deploy your Next.js panel code into `/opt/breachrabbit`, configure app `.env` values, and run the app on port `3000` so nginx proxy (`http://SERVER_IP`) serves your panel.
+This repository now includes a deployable Next.js 14 app bootstrap.
+
+### Local run
+
+```bash
+npm install
+npm run dev
+```
+
+Open:
+
+- `http://localhost:3000` — starter dashboard
+- `http://localhost:3000/api/health` — JSON health probe
+
+### Production run on the server
+
+```bash
+npm install
+npm run build
+npm run start
+```
+
+Run the app on port `3000` and keep nginx configured as reverse-proxy (`http://SERVER_IP`).
+
+### Environment variables for readiness widget
+
+The starter UI checks these variables and marks each as `OK`/`MISSING`:
+
+- `DB_HOST`
+- `DB_PORT`
+- `DB_NAME`
+- `DB_USER`
+- `REDIS_URL`
+- `NEXTAUTH_SECRET`

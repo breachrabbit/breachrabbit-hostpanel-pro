@@ -1,0 +1,95 @@
+:root {
+  color-scheme: dark;
+  --bg: #060910;
+  --card: #0e1526;
+  --text: #f4f7ff;
+  --muted: #a3b0c9;
+  --ok: #4ade80;
+  --missing: #f87171;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+  background: radial-gradient(circle at 20% 0, #18254a, var(--bg) 35%);
+  color: var(--text);
+}
+
+.container {
+  width: min(960px, 92vw);
+  margin: 0 auto;
+  padding: 4rem 0;
+}
+
+.hero h1 {
+  margin: 0.5rem 0;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+}
+
+.hero p {
+  color: var(--muted);
+  max-width: 75ch;
+}
+
+.label {
+  display: inline-block;
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9fb9ff;
+}
+
+.grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.card {
+  background: color-mix(in oklab, var(--card), black 10%);
+  border: 1px solid #253252;
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-top: 1px solid #23314f;
+  padding: 0.6rem 0;
+}
+
+li:first-child {
+  border-top: 0;
+}
+
+.ok {
+  color: var(--ok);
+}
+
+.missing {
+  color: var(--missing);
+}
+
+code {
+  background: #111a2f;
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+}
