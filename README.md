@@ -54,4 +54,5 @@ And prepares skeleton env for the panel in:
 ## Troubleshooting
 
 - If you previously saw `Refusing to operate on alias name or linked unit file: lsws.service`, pull latest installer and rerun it.
+- If you saw the same error for `openlitespeed.service`, this is also handled now: installer falls back to start-only when enable is rejected for alias/linked units.
 - The installer now auto-detects the proper OpenLiteSpeed unit (`openlitespeed.service` / `lshttpd.service`) and intentionally does not enable `lsws.service` aliases; it falls back to `lswsctrl` when needed.
