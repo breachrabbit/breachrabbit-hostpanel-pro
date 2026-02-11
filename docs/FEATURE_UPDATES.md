@@ -29,3 +29,17 @@
 - Fixed new-domain visibility in the table: `/domains` page now uses dynamic rendering (`force-dynamic`) to avoid stale cached registry output.
 - Disabled static caching for `/api/domains` list endpoint with `force-dynamic`.
 - Disabled `prefetch` on the domains link to prevent navigating to an outdated prefetched snapshot created before domain creation.
+
+## 2026-02-11 (update 3)
+
+### RU
+- В панель добавлена карточка `Tools` с кнопками быстрого доступа: `Open Adminer` и `Open file manager`.
+- Встроен файловый менеджер: новая страница `/files` с навигацией по папкам, отображением типа/размера/даты и скачиванием файлов.
+- Добавлен API `GET /api/files` с защитой от выхода за пределы `PANEL_SITES_ROOT` (path traversal guard) и поддержкой скачивания файлов (`download=1`).
+- README обновлен: добавлено описание новых инструментов панели (`/adminer`, `/files`, `/api/files`).
+
+### EN
+- Added a new `Tools` card to the panel with quick access buttons: `Open Adminer` and `Open file manager`.
+- Integrated a built-in file manager: new `/files` page with folder navigation, type/size/date listing, and file download action.
+- Added `GET /api/files` endpoint with path traversal protection (restricted to `PANEL_SITES_ROOT`) and file download support (`download=1`).
+- Updated README with documentation for the new panel tools (`/adminer`, `/files`, `/api/files`).

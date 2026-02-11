@@ -47,6 +47,12 @@ sudo ./install/install.sh
 - `/root/breachrabbit-install-summary.txt`
 - Переменные окружения панели: `/opt/breachrabbit/config/.env`
 
+### Инструменты панели
+
+- `/adminer` — web-интерфейс MariaDB (кнопка **Open Adminer** на главной панели).
+- `/files` — встроенный файловый менеджер для папки сайтов (`PANEL_SITES_ROOT`).
+- `/api/files` — API просмотра/скачивания файлов внутри разрешенного корня.
+
 ### Лог добавленных функций
 
 - Отдельный файл с новыми функциями и датами: [`docs/FEATURE_UPDATES.md`](docs/FEATURE_UPDATES.md)
@@ -95,6 +101,12 @@ sudo ./install/install.sh
 
 - `/root/breachrabbit-install-summary.txt`
 - Panel environment file: `/opt/breachrabbit/config/.env`
+
+### Panel tools
+
+- `/adminer` — MariaDB web UI (via **Open Adminer** button on main panel).
+- `/files` — built-in file manager for the sites root (`PANEL_SITES_ROOT`).
+- `/api/files` — API endpoint for browsing/downloading files inside allowed root.
 
 ### Added features log
 
