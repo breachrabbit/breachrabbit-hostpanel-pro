@@ -1,0 +1,28 @@
+export const SYSTEM_CHANGES_ALLOWED = process.env.PANEL_ALLOW_SYSTEM_CHANGES === 'true';
+
+export const RESTART_COMMAND = process.env.PANEL_RESTART_COMMAND ?? 'systemctl restart breachrabbit-panel';
+export const NGINX_RELOAD_COMMAND = process.env.PANEL_NGINX_RELOAD_COMMAND ?? 'systemctl reload nginx';
+
+export const DOMAIN_ROOT = process.env.PANEL_DOMAINS_ROOT ?? '/etc/nginx/sites-available';
+export const NGINX_ENABLED_ROOT = process.env.PANEL_NGINX_ENABLED_ROOT ?? '/etc/nginx/sites-enabled';
+export const SITE_ROOT = process.env.PANEL_SITES_ROOT ?? '/var/www/breachrabbit';
+export const DOMAIN_REGISTRY_PATH =
+  process.env.PANEL_DOMAIN_REGISTRY_PATH ?? '/opt/breachrabbit/data/domain-registry.json';
+
+export const PANEL_TARGET_URL = process.env.PANEL_TARGET_URL ?? 'http://127.0.0.1:3000';
+export const PANEL_CERTBOT_EMAIL = process.env.PANEL_CERTBOT_EMAIL ?? 'admin@localhost';
+
+export const DOMAIN_PATTERN = /^(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,63}$/;
+export const DATABASE_PATTERN = /^[a-zA-Z][a-zA-Z0-9_]{1,62}$/;
+
+export function normalizeDomain(input: string) {
+  return input.trim().toLowerCase();
+}
+
+export function commandParts(command: string) {
+  const parts = command.trim().split(/\s+/);
+  return {
+    bin: parts[0],
+    args: parts.slice(1)
+  };
+}
