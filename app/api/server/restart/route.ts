@@ -1,9 +1,19 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { NextResponse } from 'next/server';
-import { RESTART_COMMAND, SYSTEM_CHANGES_ALLOWED, commandParts } from '@/app/lib/panel-config';
 
 const execFileAsync = promisify(execFile);
+
+const RESTART_COMMAND = process.env.PANEL_RESTART_COMMAND ?? 'systemctl restart breachrabbit-panel';
+const SYSTEM_CHANGES_ALLOWED = process.env.PANEL_ALLOW_SYSTEM_CHANGES === 'true';
+
+function commandParts(command: string) {
+  const parts = command.trim().split(/\s+/);
+  return {
+    bin: parts[0],
+    args: parts.slice(1)
+  };
+}
 
 export async function POST() {
   if (!SYSTEM_CHANGES_ALLOWED) {
