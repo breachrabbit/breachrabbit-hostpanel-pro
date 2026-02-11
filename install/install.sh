@@ -183,11 +183,27 @@ SQL
 
   HOST_IP="$(hostname -I | awk '{print $1}')"
 
+  install -d -m 755 /etc/nginx/snippets
+  if [[ ! -f /etc/nginx/snippets/adminer.conf ]]; then
+    cat > /etc/nginx/snippets/adminer.conf <<'SNIP'
+# Adminer snippet will be configured later in installer.
+SNIP
+  fi
+
+  if [[ ! -f /etc/nginx/snippets/filebrowser.conf ]]; then
+    cat > /etc/nginx/snippets/filebrowser.conf <<'SNIP'
+# FileBrowser snippet will be configured later in installer.
+SNIP
+  fi
+
   # Nginx placeholder config for Next.js panel
   cat > /etc/nginx/sites-available/breachrabbit-panel.conf <<NGINX
 server {
     listen 80;
     server_name _;
+
+    include /etc/nginx/snippets/adminer.conf;
+    include /etc/nginx/snippets/filebrowser.conf;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -228,6 +244,8 @@ PANEL_SITES_ROOT=/opt/breachrabbit/sites
 PANEL_DOMAIN_REGISTRY_PATH=/opt/breachrabbit/data/domain-registry.json
 PANEL_TARGET_URL=http://127.0.0.1:3000
 PANEL_CERTBOT_EMAIL=admin@${HOST_IP}.nip.io
+PANEL_MAIN_SITE_CONFIG_PATH=/etc/nginx/sites-available/breachrabbit-panel.conf
+PANEL_MAIN_SITE_ENABLED_PATH=/etc/nginx/sites-enabled/breachrabbit-panel.conf
 ENV
   chmod 600 /opt/breachrabbit/config/.env
 
