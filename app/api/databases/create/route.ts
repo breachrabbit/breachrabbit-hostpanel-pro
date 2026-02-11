@@ -10,7 +10,12 @@ function normalizeDbName(input: string) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => null)) as { database?: string } | null;
+  const body = (await request.json().catch(() => null)) as
+    | {
+        database?: string;
+        password?: string;
+      }
+    | null;
   const database = normalizeDbName(body?.database ?? '');
 
   if (!DATABASE_PATTERN.test(database)) {
@@ -35,23 +40,49 @@ export async function POST(request: NextRequest) {
   const dbHost = process.env.DB_HOST ?? '127.0.0.1';
   const dbPort = process.env.DB_PORT ?? '3306';
   const dbUser = process.env.DB_USER ?? 'root';
-  const dbPassword = process.env.DB_PASSWORD ?? '';
+  const dbPassword = (body?.password ?? process.env.DB_PASSWORD ?? '').trim();
 
   const sql = `CREATE DATABASE IF NOT EXISTS \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`;
 
   try {
     await execFileAsync(
       'mysql',
-      ['-h', dbHost, '-P', dbPort, '-u', dbUser, `-p${dbPassword}`, '-e', sql],
+      ['-h', dbHost, '-P', dbPort, '-u', dbUser, ...(dbPassword ? [`-p${dbPassword}`] : []), '-e', sql],
       { timeout: 30_000 }
     );
 
     return NextResponse.json({
       status: 'ok',
       message: `Database ${database} created or already exists.`,
-      database
+      database,
+      authMode: 'tcp'
     });
   } catch (error) {
+    if (dbUser === 'root') {
+      try {
+        await execFileAsync(
+          'mysql',
+          ['--protocol=socket', '-u', 'root', ...(dbPassword ? [`-p${dbPassword}`] : []), '-e', sql],
+          { timeout: 30_000 }
+        );
+
+        return NextResponse.json({
+          status: 'ok',
+          message: `Database ${database} created using socket auth fallback.`,
+          database,
+          authMode: 'socket'
+        });
+      } catch (fallbackError) {
+        return NextResponse.json(
+          {
+            status: 'error',
+            message: fallbackError instanceof Error ? fallbackError.message : 'Database creation failed'
+          },
+          { status: 500 }
+        );
+      }
+    }
+
     return NextResponse.json(
       {
         status: 'error',

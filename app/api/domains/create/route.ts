@@ -59,6 +59,9 @@ export async function POST(request: NextRequest) {
   listen 80;
   server_name ${domain};
 
+  include /etc/nginx/snippets/adminer.conf;
+  include /etc/nginx/snippets/filebrowser.conf;
+
   location / {
     proxy_pass ${PANEL_TARGET_URL};
     proxy_http_version 1.1;

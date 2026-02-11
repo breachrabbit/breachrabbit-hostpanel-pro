@@ -35,8 +35,11 @@ export function PanelActions() {
   const [createDemoSite, setCreateDemoSite] = useState(true);
   const [bindToPanel, setBindToPanel] = useState(false);
   const [issueCertificate, setIssueCertificate] = useState(true);
+  const [panelDomain, setPanelDomain] = useState('');
+  const [panelDomainCertificate, setPanelDomainCertificate] = useState(true);
 
   const [database, setDatabase] = useState('');
+  const [databasePassword, setDatabasePassword] = useState('');
   const [mysqlRootPassword, setMysqlRootPassword] = useState('');
 
   const [redisDb, setRedisDb] = useState('0');
@@ -46,12 +49,13 @@ export function PanelActions() {
 
   const [restartState, setRestartState] = useState<string>('Idle');
   const [domainState, setDomainState] = useState<string>('Idle');
+  const [panelDomainState, setPanelDomainState] = useState<string>('Idle');
   const [databaseState, setDatabaseState] = useState<string>('Idle');
   const [rootPasswordState, setRootPasswordState] = useState<string>('Idle');
   const [redisState, setRedisState] = useState<string>('Idle');
-  const [busy, setBusy] = useState<'restart' | 'domain' | 'database' | 'root-password' | 'redis' | null>(
-    null
-  );
+  const [busy, setBusy] = useState<
+    'restart' | 'domain' | 'panel-domain' | 'database' | 'root-password' | 'redis' | null
+  >(null);
 
   const disabled = useMemo(() => busy !== null, [busy]);
 
@@ -91,6 +95,25 @@ export function PanelActions() {
     }
   };
 
+  const handleConfigurePanelDomain = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setBusy('panel-domain');
+    setPanelDomainState('Panel domain setup in progress...');
+
+    try {
+      const data = await callApi('/api/panel/domain', {
+        method: 'POST',
+        body: JSON.stringify({ domain: panelDomain, issueCertificate: panelDomainCertificate })
+      });
+
+      setPanelDomainState(`${data.status.toUpperCase()}: ${data.message}`);
+    } catch (error) {
+      setPanelDomainState(error instanceof Error ? error.message : 'Panel domain setup failed');
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const handleCreateDatabase = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setBusy('database');
@@ -99,7 +122,7 @@ export function PanelActions() {
     try {
       const data = await callApi('/api/databases/create', {
         method: 'POST',
-        body: JSON.stringify({ database })
+        body: JSON.stringify({ database, password: databasePassword })
       });
 
       setDatabaseState(`${data.status.toUpperCase()}: ${data.message}`);
@@ -197,7 +220,7 @@ export function PanelActions() {
         {activeDbTab === 'mysql' ? (
           <div className="stack">
             <div className="toolbarRow">
-              <a className="button" href="/adminer" target="_blank" rel="noreferrer">
+              <a className="button" href="/adminer/" target="_blank" rel="noreferrer">
                 Open Adminer
               </a>
             </div>
@@ -214,6 +237,18 @@ export function PanelActions() {
                 placeholder="project_db"
                 className="input"
                 required
+              />
+
+              <label htmlFor="database-password" className="label-inline">
+                MySQL password (optional override)
+              </label>
+              <input
+                id="database-password"
+                type="password"
+                value={databasePassword}
+                onChange={(event) => setDatabasePassword(event.target.value)}
+                placeholder="Use current DB_PASSWORD if empty"
+                className="input"
               />
 
               <button className="button" type="submit" disabled={disabled}>
@@ -301,17 +336,58 @@ export function PanelActions() {
         )}
       </article>
 
-      <article className="card">
-        <h2>Tools</h2>
-        <p>Quick access to Adminer and FileBrowser (https://filebrowser.org).</p>
-        <div className="buttonRow">
-          <a className="button" href="/adminer" target="_blank" rel="noreferrer">
-            Open Adminer
-          </a>
-          <Link className="button" href="/files/" prefetch={false}>
-            Open FileBrowser
-          </Link>
+      <article className="card dbCard">
+        <h2>Tools embedded in panel</h2>
+        <p>
+          Open Adminer and FileBrowser directly inside panel via iframe. If one panel domain returns
+          404 for direct links, use panel domain setup below.
+        </p>
+        <div className="toolGrid">
+          <section className="stack">
+            <h3>Adminer</h3>
+            <iframe title="Adminer" src="/adminer/" className="toolFrame" loading="lazy" />
+          </section>
+          <section className="stack">
+            <h3>FileBrowser</h3>
+            <iframe title="FileBrowser" src="/files/" className="toolFrame" loading="lazy" />
+          </section>
         </div>
+      </article>
+
+      <article className="card">
+        <h2>Panel domain access</h2>
+        <p>
+          Configure the main panel domain separately (nginx server_name + optional Let&apos;s Encrypt).
+        </p>
+
+        <form onSubmit={handleConfigurePanelDomain} className="stack">
+          <label htmlFor="panel-domain" className="label-inline">
+            Panel domain
+          </label>
+          <input
+            id="panel-domain"
+            value={panelDomain}
+            onChange={(event) => setPanelDomain(event.target.value)}
+            placeholder="panel.example.com"
+            className="input"
+            required
+          />
+
+          <label className="checkbox-line">
+            <input
+              type="checkbox"
+              checked={panelDomainCertificate}
+              onChange={(event) => setPanelDomainCertificate(event.target.checked)}
+            />
+            Issue Let&apos;s Encrypt certificate for panel domain
+          </label>
+
+          <button className="button" type="submit" disabled={disabled}>
+            {busy === 'panel-domain' ? 'Applying…' : 'Save panel domain'}
+          </button>
+        </form>
+
+        <p className="status">{panelDomainState}</p>
       </article>
 
       <article className="card">

@@ -93,3 +93,22 @@
 - The `MySQL` tab now includes database creation (`Add DB`), `root` password change, and a quick Adminer button.
 - Added `POST /api/databases/root-password` endpoint to update `root@localhost` password via SQL.
 - The `Redis` tab now includes an `Add key` form (DB index, key, value, TTL) and `POST /api/redis/keys` endpoint that writes keys via `redis-cli`.
+
+
+## 2026-02-11 (update 8)
+
+### RU
+- Добавлен отдельный API `POST /api/panel/domain` для настройки домена самой панели: обновление `server_name` основного Nginx-конфига, автоматическое добавление `adminer/filebrowser` snippets, перезагрузка Nginx и (опционально) выпуск сертификата Let's Encrypt.
+- В карточках панели добавлен новый блок `Panel domain access`, чтобы настраивать домен панели отдельно от пользовательских доменов проектов.
+- Инструменты `Adminer` и `FileBrowser` встроены прямо в панель через iframe-блок `Tools embedded in panel`.
+- В API создания домена (`/api/domains/create`) для режима привязки к панели теперь явно подключаются snippets `adminer` и `filebrowser`, чтобы ссылки на инструменты не отдавали 404 на таких доменах.
+- Исправлены операции с MySQL: форма создания БД теперь поддерживает явный ввод пароля, а API `/api/databases/create` и `/api/databases/root-password` получили fallback на socket-аутентификацию для случаев, когда TCP-доступ `root` отключен.
+- `install/install.sh` обновлен: переменные путей основного panel-конфига добавлены в `.env`, а include snippets для `adminer/filebrowser` подключаются в основном Nginx-сайте с безопасными заглушками до финальной настройки.
+
+### EN
+- Added dedicated `POST /api/panel/domain` API for panel domain configuration: updates main Nginx `server_name`, ensures `adminer/filebrowser` snippets are included, reloads Nginx, and optionally issues a Let's Encrypt certificate.
+- Added a new `Panel domain access` block in the panel UI to configure panel domain separately from project domains.
+- Embedded `Adminer` and `FileBrowser` directly into the panel using iframe-based `Tools embedded in panel` section.
+- Updated domain creation API (`/api/domains/create`) so panel-bound domains explicitly include `adminer` and `filebrowser` snippets, preventing tool-link 404s on those domains.
+- Fixed MySQL operations: DB creation form now supports explicit password input, and `/api/databases/create` + `/api/databases/root-password` now include socket-auth fallback when TCP `root` access is disabled.
+- Updated `install/install.sh`: added main panel config path variables to `.env`, and wired `adminer/filebrowser` include snippets in the main Nginx site with safe placeholders before final setup.

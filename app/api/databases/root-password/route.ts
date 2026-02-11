@@ -43,21 +43,32 @@ export async function POST(request: NextRequest) {
   try {
     await execFileAsync(
       'mysql',
-      ['-h', dbHost, '-P', dbPort, '-u', dbUser, `-p${dbPassword}`, '-e', sql],
+      ['-h', dbHost, '-P', dbPort, '-u', dbUser, ...(dbPassword ? [`-p${dbPassword}`] : []), '-e', sql],
       { timeout: 30_000 }
     );
 
     return NextResponse.json({
       status: 'ok',
-      message: 'MySQL root password updated for root@localhost.'
+      message: 'MySQL root password updated for root@localhost.',
+      authMode: 'tcp'
     });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Root password update failed'
-      },
-      { status: 500 }
-    );
+  } catch {
+    try {
+      await execFileAsync('mysql', ['--protocol=socket', '-u', 'root', '-e', sql], { timeout: 30_000 });
+
+      return NextResponse.json({
+        status: 'ok',
+        message: 'MySQL root password updated for root@localhost via socket auth.',
+        authMode: 'socket'
+      });
+    } catch (error) {
+      return NextResponse.json(
+        {
+          status: 'error',
+          message: error instanceof Error ? error.message : 'Root password update failed'
+        },
+        { status: 500 }
+      );
+    }
   }
 }

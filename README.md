@@ -49,8 +49,10 @@ sudo ./install/install.sh
 
 ### Инструменты панели
 
-- `/adminer` — web-интерфейс MariaDB (кнопка **Open Adminer** на главной панели).
+- `Tools embedded in panel` — встроенные iframe для Adminer и FileBrowser прямо на главной панели.
+- `/adminer` — web-интерфейс MariaDB (также доступен из панели).
 - `/files/` — FileBrowser (https://filebrowser.org) для папки сайтов (`/opt/breachrabbit/sites`).
+- `Panel domain access` — отдельная настройка домена самой панели с выпуском сертификата через UI.
 
 ### Лог добавленных функций
 
@@ -103,8 +105,10 @@ sudo ./install/install.sh
 
 ### Panel tools
 
-- `/adminer` — MariaDB web UI (via **Open Adminer** button on main panel).
+- `Tools embedded in panel` — built-in iframes for Adminer and FileBrowser directly on the main panel.
+- `/adminer` — MariaDB web UI (also reachable from the panel).
 - `/files/` — FileBrowser (https://filebrowser.org) for the sites root (`/opt/breachrabbit/sites`).
+- `Panel domain access` — separate panel-domain configuration with optional certificate issuing from UI.
 
 ### Added features log
 
