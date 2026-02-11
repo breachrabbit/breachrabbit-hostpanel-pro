@@ -43,3 +43,13 @@
 - Integrated a built-in file manager: new `/files` page with folder navigation, type/size/date listing, and file download action.
 - Added `GET /api/files` endpoint with path traversal protection (restricted to `PANEL_SITES_ROOT`) and file download support (`download=1`).
 - Updated README with documentation for the new panel tools (`/adminer`, `/files`, `/api/files`).
+
+## 2026-02-11 (update 4)
+
+### RU
+- В `install/install.sh` предупреждение о необходимости перезагрузки перенесено в таблицу доступов (`Reboot required`), чтобы все ключевые доступы и статусы выводились строго в самом конце единым блоком.
+- Финальный лог `Done...` перемещен перед сводкой доступов: теперь после него печатается только итоговый блок с доступами.
+
+### EN
+- In `install/install.sh`, the reboot recommendation is now embedded into the `Reboot required` row inside the final access table, so all critical access details and statuses are shown strictly at the very end in one block.
+- The final `Done...` log line was moved before the access summary: now only the final access block is printed after it.
