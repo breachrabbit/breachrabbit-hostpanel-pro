@@ -1,24 +1,43 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { mkdir, symlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { promisify } from 'node:util';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  DOMAIN_PATTERN,
+  DOMAIN_ROOT,
+  NGINX_ENABLED_ROOT,
+  NGINX_RELOAD_COMMAND,
+  PANEL_CERTBOT_EMAIL,
+  PANEL_TARGET_URL,
+  SITE_ROOT,
+  SYSTEM_CHANGES_ALLOWED,
+  commandParts,
+  normalizeDomain
+} from '@/app/lib/panel-config';
+import { upsertDomainRegistry } from '@/app/lib/domain-registry';
 
-const DOMAIN_ROOT = process.env.PANEL_DOMAINS_ROOT ?? '/tmp/breachrabbit/domains';
-const SITE_ROOT = process.env.PANEL_SITES_ROOT ?? '/tmp/breachrabbit/sites';
-const SYSTEM_CHANGES_ALLOWED = process.env.PANEL_ALLOW_SYSTEM_CHANGES === 'true';
+const execFileAsync = promisify(execFile);
 
-const DOMAIN_PATTERN = /^(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,63}$/;
-
-function normalizeDomain(input: string) {
-  return input.trim().toLowerCase();
+async function runCommand(command: string, timeout = 30_000) {
+  const { bin, args } = commandParts(command);
+  return execFileAsync(bin, args, { timeout });
 }
 
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as
-    | { domain?: string; createDemoSite?: boolean }
+    | {
+        domain?: string;
+        createDemoSite?: boolean;
+        bindToPanel?: boolean;
+        issueCertificate?: boolean;
+      }
     | null;
 
   const domain = normalizeDomain(body?.domain ?? '');
   const createDemoSite = body?.createDemoSite !== false;
+  const bindToPanel = body?.bindToPanel === true;
+  const issueCertificate = body?.issueCertificate === true;
 
   if (!domain || !DOMAIN_PATTERN.test(domain)) {
     return NextResponse.json(
@@ -31,10 +50,26 @@ export async function POST(request: NextRequest) {
   }
 
   const domainConfigPath = join(DOMAIN_ROOT, `${domain}.conf`);
+  const enabledConfigPath = join(NGINX_ENABLED_ROOT, `${domain}.conf`);
   const sitePath = join(SITE_ROOT, domain);
   const siteIndexPath = join(sitePath, 'index.html');
 
-  const config = `server {
+  const config = bindToPanel
+    ? `server {
+  listen 80;
+  server_name ${domain};
+
+  location / {
+    proxy_pass ${PANEL_TARGET_URL};
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+  }
+}
+`
+    : `server {
   listen 80;
   server_name ${domain};
 
@@ -60,33 +95,97 @@ export async function POST(request: NextRequest) {
 </html>
 `;
 
+  const plannedFiles = createDemoSite && !bindToPanel ? [domainConfigPath, enabledConfigPath, siteIndexPath] : [domainConfigPath, enabledConfigPath];
+
   if (!SYSTEM_CHANGES_ALLOWED) {
+    await upsertDomainRegistry({
+      domain,
+      attachedToPanel: bindToPanel,
+      demoSite: createDemoSite && !bindToPanel,
+      certStatus: issueCertificate ? 'pending' : 'none',
+      certIssuedAt: null,
+      certExpiresAt: null,
+      certProvider: issueCertificate ? 'letsencrypt' : 'n/a',
+      lastUpdatedAt: new Date().toISOString()
+    });
+
     return NextResponse.json({
       status: 'dry-run',
       message:
-        'System actions are disabled. Set PANEL_ALLOW_SYSTEM_CHANGES=true to create domain files.',
+        'System actions are disabled. Set PANEL_ALLOW_SYSTEM_CHANGES=true to create domain files and issue certificates.',
       domain,
-      files: createDemoSite ? [domainConfigPath, siteIndexPath] : [domainConfigPath]
+      files: plannedFiles
     });
   }
 
   await mkdir(DOMAIN_ROOT, { recursive: true });
+  await mkdir(NGINX_ENABLED_ROOT, { recursive: true });
   await writeFile(domainConfigPath, config, 'utf8');
 
-  const files = [domainConfigPath];
+  try {
+    await symlink(domainConfigPath, enabledConfigPath);
+  } catch {
+    // Ignore if symlink exists or cannot be created due to permissions.
+  }
 
-  if (createDemoSite) {
+  if (createDemoSite && !bindToPanel) {
     await mkdir(sitePath, { recursive: true });
     await writeFile(siteIndexPath, demoPage, 'utf8');
-    files.push(siteIndexPath);
   }
+
+  await runCommand(NGINX_RELOAD_COMMAND);
+
+  let certStatus: 'active' | 'failed' | 'none' = 'none';
+  let certIssuedAt: string | null = null;
+  let certExpiresAt: string | null = null;
+
+  if (issueCertificate) {
+    try {
+      await execFileAsync(
+        'certbot',
+        [
+          '--nginx',
+          '-d',
+          domain,
+          '--non-interactive',
+          '--agree-tos',
+          '--redirect',
+          '-m',
+          PANEL_CERTBOT_EMAIL
+        ],
+        { timeout: 180_000 }
+      );
+
+      certStatus = 'active';
+      certIssuedAt = new Date().toISOString();
+      certExpiresAt = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString();
+    } catch {
+      certStatus = 'failed';
+    }
+  }
+
+  await upsertDomainRegistry({
+    domain,
+    attachedToPanel: bindToPanel,
+    demoSite: createDemoSite && !bindToPanel,
+    certStatus,
+    certIssuedAt,
+    certExpiresAt,
+    certProvider: issueCertificate ? 'letsencrypt' : 'n/a',
+    lastUpdatedAt: new Date().toISOString()
+  });
 
   return NextResponse.json({
     status: 'ok',
-    message: createDemoSite
-      ? 'Domain and demo site created successfully.'
+    message: bindToPanel
+      ? 'Domain created and attached to panel.'
       : 'Domain config created successfully.',
     domain,
-    files
+    files: plannedFiles,
+    certificate: {
+      status: certStatus,
+      issuedAt: certIssuedAt,
+      expiresAt: certExpiresAt
+    }
   });
 }

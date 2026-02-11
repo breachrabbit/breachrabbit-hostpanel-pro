@@ -150,7 +150,7 @@ FLUSH PRIVILEGES;
 SQL
 
   # Prepare app directories
-  install -d -m 750 /opt/breachrabbit/{config,data,logs}
+  install -d -m 750 /opt/breachrabbit/{config,data,logs,domains,sites,certs}
 
   local host_ip
   host_ip="$(hostname -I | awk '{print $1}')"
@@ -190,6 +190,15 @@ DB_NAME=breachrabbit
 REDIS_URL=redis://127.0.0.1:6379
 OLS_API_BASE_URL=http://127.0.0.1:7080
 AEZA_API_KEY=CHANGE_ME
+PANEL_ALLOW_SYSTEM_CHANGES=false
+PANEL_RESTART_COMMAND=systemctl restart breachrabbit-panel
+PANEL_NGINX_RELOAD_COMMAND=systemctl reload nginx
+PANEL_DOMAINS_ROOT=/etc/nginx/sites-available
+PANEL_NGINX_ENABLED_ROOT=/etc/nginx/sites-enabled
+PANEL_SITES_ROOT=/opt/breachrabbit/sites
+PANEL_DOMAIN_REGISTRY_PATH=/opt/breachrabbit/data/domain-registry.json
+PANEL_TARGET_URL=http://127.0.0.1:3000
+PANEL_CERTBOT_EMAIL=admin@${host_ip}.nip.io
 ENV
   chmod 600 /opt/breachrabbit/config/.env
 
