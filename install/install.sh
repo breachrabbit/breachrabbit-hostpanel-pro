@@ -182,6 +182,7 @@ NGINX
 NODE_ENV=production
 APP_PORT=3000
 APP_SECRET=${app_secret}
+NEXTAUTH_SECRET=${app_secret}
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_USER=root
@@ -190,7 +191,7 @@ DB_NAME=breachrabbit
 REDIS_URL=redis://127.0.0.1:6379
 OLS_API_BASE_URL=http://127.0.0.1:7080
 AEZA_API_KEY=CHANGE_ME
-PANEL_ALLOW_SYSTEM_CHANGES=false
+PANEL_ALLOW_SYSTEM_CHANGES=true
 PANEL_RESTART_COMMAND=systemctl restart breachrabbit-panel
 PANEL_NGINX_RELOAD_COMMAND=systemctl reload nginx
 PANEL_DOMAINS_ROOT=/etc/nginx/sites-available
@@ -244,7 +245,7 @@ BreachRabbit Panel bootstrap complete.
 | Nginx Panel Proxy (placeholder) | http://${host_ip} | - | - |
 | MariaDB Root | localhost:3306 | root | ${db_root_pass} |
 | Adminer | ${adminer_url} | root | ${db_root_pass} |
-| Panel env file | /opt/breachrabbit/config/.env | APP_SECRET | ${app_secret} |
+| Panel env file | /opt/breachrabbit/config/.env | NEXTAUTH_SECRET | ${app_secret} |
 | Reboot required | system status | - | ${reboot_required} |
 
 Saved: ${summary_file}
@@ -260,13 +261,65 @@ SUMMARY
   fi
 }
 
+deploy_panel_app() {
+  log "Phase 5/5: Deploying Next.js panel and enabling background service"
+
+  local panel_repo panel_dir panel_user panel_unit
+  panel_repo="https://github.com/breachrabbit/breachrabbit-web-panel.git"
+  panel_dir="/opt/breachrabbit/panel"
+  panel_user="root"
+  panel_unit="/etc/systemd/system/breachrabbit-panel.service"
+
+  if [[ -d "${panel_dir}/.git" ]]; then
+    git -C "${panel_dir}" fetch --all --prune
+    git -C "${panel_dir}" reset --hard origin/main
+  else
+    rm -rf "${panel_dir}"
+    git clone "${panel_repo}" "${panel_dir}"
+  fi
+
+  cd "${panel_dir}"
+
+  if [[ -f package-lock.json ]]; then
+    npm ci
+  else
+    npm install
+  fi
+
+  npm run build
+
+  cat > "${panel_unit}" <<SERVICE
+[Unit]
+Description=BreachRabbit Next.js Panel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=${panel_user}
+WorkingDirectory=${panel_dir}
+EnvironmentFile=/opt/breachrabbit/config/.env
+Environment=PORT=3000
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+  systemctl daemon-reload
+  systemctl enable --now breachrabbit-panel
+}
+
 main() {
   install_phase_updates
   install_phase_base_utils
   install_phase_stack
   configure_initial_services
+  deploy_panel_app
 
-  log "Done. Next step: deploy Next.js panel code into /opt/breachrabbit and run it on port 3000."
+  log "Done. Panel is deployed and running in background via breachrabbit-panel service."
 }
 
 main "$@"
