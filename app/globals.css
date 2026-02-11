@@ -176,3 +176,53 @@ th {
   flex-wrap: wrap;
   gap: 0.6rem;
 }
+
+.dbCard {
+  grid-column: span 2;
+}
+
+.tabRow {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.tabButton {
+  border: 1px solid #314a80;
+  background: #111e3e;
+  color: #cfe0ff;
+  border-radius: 10px;
+  padding: 0.5rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tabButton.active {
+  background: #1f8f3f;
+  border-color: #33b05a;
+  color: #f4fff7;
+}
+
+.tabPanel {
+  border: 1px solid #253252;
+  border-radius: 12px;
+  padding: 0.85rem;
+  background: #0b1221;
+}
+
+.tabPanel h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.toolbarRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+@media (max-width: 900px) {
+  .dbCard {
+    grid-column: span 1;
+  }
+}
