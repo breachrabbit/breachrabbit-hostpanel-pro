@@ -130,13 +130,19 @@ systemctl start redis-server
 
 print_success "Redis configured"
 
-# 7. Configure OpenLiteSpeed
+# 7. Configuring OpenLiteSpeed
 print_info "Step 7/10: Configuring OpenLiteSpeed..."
 
-systemctl enable lsws
-systemctl start lsws
+# У OLS в Ubuntu 24.04 юнит может называться lshttpd или lsws
+# Сначала пробуем запустить через прямой путь, это надежнее
+/usr/local/lsws/bin/lswsctrl start || true
 
-# Set admin password
+# Исправляем проблему с alias для systemd
+systemctl unmask lshttpd.service || true
+systemctl enable lshttpd.service || true
+systemctl restart lshttpd.service || true
+
+# Установка пароля администратора OLS (неинтерактивно)
 /usr/local/lsws/admin/misc/admpass.sh <<EOF
 admin
 br_ols_admin_2026
