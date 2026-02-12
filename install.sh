@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "🐇 Breach Rabbit HostPanel Pro: Установка (Yandex Mirror + Fix GPG)"
+echo "🐇 Breach Rabbit HostPanel Pro: Полная автоматизация (Yandex + Timeweb)"
 echo "======================================================================"
 
 # Цвета
@@ -14,12 +14,12 @@ print_success() { echo -e "${GREEN}✓ $1${NC}"; }
 print_info() { echo -e "${YELLOW}ℹ $1${NC}"; }
 
 if [ "$EUID" -ne 0 ]; then 
-    echo -e "${RED}Запустите от имени root!${NC}"
+    echo -e "${RED}Ошибка: Запустите от root!${NC}"
     exit 1
 fi
 
-# 1. Смена зеркал на Yandex (Исправляем Hit: http://archive.ubuntu.com)
-print_info "Шаг 1: Переключение на зеркала Yandex..."
+# 1. Смена зеркал на Yandex (Гарантированно переключаем)
+print_info "Шаг 1: Переключение системных репозиториев на Yandex..."
 cat > /etc/apt/sources.list <<EOF
 deb http://mirror.yandex.ru/ubuntu/ noble main restricted universe multiverse
 deb http://mirror.yandex.ru/ubuntu/ noble-updates main restricted universe multiverse
@@ -28,16 +28,17 @@ deb http://mirror.yandex.ru/ubuntu/ noble-security main restricted universe mult
 EOF
 
 apt-get update && apt-get install -y curl wget gnupg2 lsb-release ca-certificates software-properties-common sudo
-print_success "Зеркала настроены"
+print_success "Система настроена на Yandex Mirror"
 
-# 2. Добавление репозиториев (СОВРЕМЕННЫЙ МЕТОД БЕЗ 404)
-print_info "Шаг 2: Добавление репозиториев (Keyrings)..."
+# 2. Добавление репозиториев (С исправлением GPG Overwrite и 404)
+print_info "Шаг 2: Настройка ключей и репозиториев..."
 mkdir -p /etc/apt/keyrings
 
-# PHP (Ondrej Sury) - используем встроенную утилиту, она надежнее для PPA
+# PHP (Ondrej Sury)
 add-apt-repository ppa:ondrej/php -y
 
 # MariaDB 11.4 (Timeweb Mirror)
+# Используем --yes в gpg, чтобы не спрашивал про перезапись
 curl -fsSL https://mirror.timeweb.ru/mariadb/publicKey | gpg --dearmor --yes -o /etc/apt/keyrings/mariadb-keyring.gpg
 echo "deb [signed-by=/etc/apt/keyrings/mariadb-keyring.gpg] https://mirror.timeweb.ru/mariadb/repo/11.4/ubuntu noble main" > /etc/apt/sources.list.d/mariadb.list
 
@@ -45,17 +46,17 @@ echo "deb [signed-by=/etc/apt/keyrings/mariadb-keyring.gpg] https://mirror.timew
 curl -fsSL https://nginx.org/keys/nginx_signing.key | gpg --dearmor --yes -o /etc/apt/keyrings/nginx-archive-keyring.gpg
 echo "deb [signed-by=/etc/apt/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/mainline/ubuntu noble nginx" > /etc/apt/sources.list.d/nginx.list
 
-# Node.js 20.x
+# Node.js 20.x (Актуальный путь Nodesource)
 curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor --yes -o /etc/apt/keyrings/nodesource.gpg
 echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" > /etc/apt/sources.list.d/nodesource.list
 
 # OpenLiteSpeed
 wget -O - https://rpms.litespeedtech.com/debian/enable_lst_debian_repo.sh | bash
 
-print_success "Репозитории добавлены без ошибок"
+print_success "Все репозитории добавлены успешно"
 
 # 3. Установка пакетов
-print_info "Шаг 3: Установка стека..."
+print_info "Шаг 3: Установка серверного ПО..."
 apt-get update
 apt-get install -y php8.3 php8.3-fpm php8.4 php8.4-fpm \
                    lsphp83 lsphp84 openlitespeed nginx mariadb-server \
@@ -73,11 +74,16 @@ print_info "Шаг 5: Настройка MariaDB..."
 systemctl enable --now mariadb
 mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'br_mysql_root_2026'; FLUSH PRIVILEGES;" || true
 
-# 6. PostCSS & .env (Включаем свет)
-print_info "Шаг 6: Конфигурация приложения..."
+# 6. Конфигурация PostCSS и .env
+print_info "Шаг 6: Настройка окружения и дизайна..."
 SERVER_IP=$(curl -s icanhazip.com || hostname -I | awk '{print $1}')
 cat > postcss.config.js <<EOF
-module.exports = { plugins: { tailwindcss: {}, autoprefixer: {}, } }
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
 EOF
 
 if [ ! -f ".env" ]; then
@@ -88,7 +94,7 @@ if [ ! -f ".env" ]; then
 fi
 
 # 7. Сборка и запуск
-print_info "Шаг 7: Сборка и запуск панели..."
+print_info "Шаг 7: Финальная сборка..."
 npm install
 npx prisma generate
 npx prisma db push --accept-data-loss
@@ -100,6 +106,6 @@ pm2 start npm --name "breachrabbit-panel" -- start
 pm2 save
 
 echo "======================================================================"
-print_success "УСТАНОВКА ЗАВЕРШЕНА!"
-echo "🌍 URL: http://$SERVER_IP:3000"
+print_success "ГОТОВО! Зеркала обновлены, 404 исправлена."
+echo "🌍 Адрес панели: http://$SERVER_IP:3000"
 echo "======================================================================"
