@@ -103,12 +103,23 @@ print_info "Step 5/10: Configuring MariaDB..."
 systemctl enable mariadb
 systemctl start mariadb
 
-# Secure installation (non-interactive)
-mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED BY 'br_mysql_root_2026';" 2>/dev/null || true
-mysql -e "DELETE FROM mysql.user WHERE User='';"
-mysql -e "DROP DATABASE IF EXISTS test;"
-mysql -e "FLUSH PRIVILEGES;"
+# 5. Configuring MariaDB
+print_info "Step 5/10: Configuring MariaDB (using unix_socket fix)..."
 
+systemctl enable mariadb
+systemctl start mariadb
+
+# Используем mariadb вместо mysql и выполняем сброс привилегий
+# В 11.4+ root по умолчанию заходит без пароля через sudo (unix_socket)
+mariadb -u root <<EOF
+ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('br_mysql_root_2026');
+DELETE FROM mysql.user WHERE User='';
+DROP DATABASE IF EXISTS test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+FLUSH PRIVILEGES;
+EOF
+
+print_success "MariaDB configured"
 print_success "MariaDB configured"
 
 # 6. Configure Redis
