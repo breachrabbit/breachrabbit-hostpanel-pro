@@ -31,7 +31,7 @@ fi
 # 1. Update system
 print_info "Step 1/10: Updating system..."
 apt-get update && apt-get upgrade -y
-apt-get install -y curl wget gnupg2 lsb-release ca-certificates software-properties-common
+apt-get install -y curl wget gnupg2 lsb-release ca-certificates software-properties-common curl
 print_success "System updated"
 
 # 2. Add repositories
