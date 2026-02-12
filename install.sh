@@ -41,8 +41,9 @@ print_info "Step 2/10: Adding repositories..."
 add-apt-repository ppa:ondrej/php -y
 
 # MariaDB 12.2
-# curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version="mariadb-10.11"
-deb [signed-by=/etc/apt/keyrings/mariadb-keyring.pgp] https://mirrors.xtom.de/mariadb/repo/12.2/ubuntu noble main
+curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version="mariadb-10.11"
+curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version="mariadb-12.2"
+# deb [signed-by=/etc/apt/keyrings/mariadb-keyring.pgp] https://mirrors.xtom.de/mariadb/repo/12.2/ubuntu noble main
 
 # OpenLiteSpeed 1.8
 wget -O - https://rpms.litespeedtech.com/debian/enable_lst_debian_repo.sh | bash
