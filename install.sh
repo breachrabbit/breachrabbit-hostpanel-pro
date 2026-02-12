@@ -30,9 +30,9 @@ fi
 
 # 1. Update system
 print_info "Step 1/10: Updating system..."
-apt-get update # && apt-get upgrade -y
-apt-get install -y curl wget gnupg2 lsb-release ca-certificates software-properties-common curl
-print_success "System updated" 
+apt-get update && apt-get upgrade -y
+apt-get install -y curl wget gnupg2 lsb-release ca-certificates software-properties-common apt-transport-https
+print_success "System updated"
 
 # 2. Add repositories
 print_info "Step 2/10: Adding repositories..."
@@ -40,32 +40,8 @@ print_info "Step 2/10: Adding repositories..."
 # PHP (Ondrej Sury)
 add-apt-repository ppa:ondrej/php -y
 
-# MariaDB 11.8.6
-#!/bin/bash
-[ $EUID -eq 0 ]||exit 1
-apt purge -y mysql-* mariadb-* 2>/dev/null||:
-rm -rf /var/lib/mysql /etc/mysql /var/run/mysqld
-mkdir -p /etc/apt/keyrings
-curl -fsSL https://mariadb.org/mariadb_release_signing_key.asc|gpg --dearmor -o /etc/apt/keyrings/mariadb.gpg
-echo "deb [signed-by=/etc/apt/keyrings/mariadb.gpg] https://deb.mariadb.org/11.8/ubuntu noble main">/etc/apt/sources.list.d/mariadb.list
-apt update
-apt install -y mariadb-server=1:11.8.6+maria~ubu2404 mariadb-client=1:11.8.6+maria~ubu2404
-systemctl enable --now mariadb
-p=$(openssl rand -base64 18)
-mysql -e "ALTER USER root@localhost IDENTIFIED BY '$p';DELETE FROM mysql.user WHERE User='';DROP DATABASE IF EXISTS test;FLUSH PRIVILEGES;"
-echo $p>/root/.dbp
-chmod 600 /root/.dbp
-mv /usr/bin/mysql /usr/bin/mysql.real 2>/dev/null||:
-cat >/usr/local/bin/mysql<<'EOF'
-#!/bin/sh
-[ "$1" = "-V" -o "$1" = "--version" -o "$1" = "-v" ]&&{ echo "mariadb  Ver 15.1 Distrib 10.11.13-MariaDB, for debian-linux-gnu (x86_64) using  EditLine wrapper";exit 0;}
-exec /usr/bin/mariadb "$@"
-EOF
-chmod +x /usr/local/bin/mysql
-ln -sf /usr/local/bin/mysql /usr/bin/mysql
-for c in admin dump show import;do ln -sf /usr/bin/mariadb-$c /usr/local/bin/mysql$c;ln -sf /usr/local/bin/mysql$c /usr/bin/mysql$c;done
-ln -sf /usr/sbin/mariadbd /usr/local/bin/mysqld
-ln -sf /usr/local/bin/mysqld /usr/bin/mysqld
+# MariaDB 11.4.10 (FIXED: полная версия)
+curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version="mariadb-11.4.10"
 
 # OpenLiteSpeed 1.8
 wget -O - https://rpms.litespeedtech.com/debian/enable_lst_debian_repo.sh | bash
@@ -248,7 +224,7 @@ echo "📍 Версии:"
 echo "   - PHP: 8.3, 8.4"
 echo "   - OpenLiteSpeed: 1.8 (port 7080)"
 echo "   - Nginx: 1.28 (port 80/443)"
-echo "   - MariaDB: 11.4"
+echo "   - MariaDB: 11.4.10"
 echo "   - PostgreSQL: 16"
 echo "   - Redis: 7"
 echo "   - Node.js: 20"
