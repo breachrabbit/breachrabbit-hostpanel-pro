@@ -41,8 +41,7 @@ print_info "Step 2/10: Adding repositories..."
 add-apt-repository ppa:ondrej/php -y
 
 # MariaDB 10.11
-# curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version="mariadb-10.11"
- #!/bin/bash
+curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version="mariadb-10.11"
 
 # 1. Скачиваем и добавляем официальный репозиторий MySQL
 wget -c https://dev.mysql.com/get/mysql-apt-config_0.8.33-1_all.deb
