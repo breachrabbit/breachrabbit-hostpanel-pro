@@ -40,8 +40,8 @@ print_info "Step 2/10: Adding repositories..."
 # PHP (Ondrej Sury)
 add-apt-repository ppa:ondrej/php -y
 
-# MariaDB 11.4
-curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version="mariadb-11.4"
+# MariaDB 10.11
+curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version="mariadb-10.11"
 
 # OpenLiteSpeed 1.8
 wget -O - https://rpms.litespeedtech.com/debian/enable_lst_debian_repo.sh | bash
