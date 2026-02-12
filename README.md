@@ -1,4 +1,4 @@
-# HostPanel Pro
+# Breach Rabbit HostPanel Pro
 
 Modern hosting control panel built with Next.js 14, optimized for WordPress sites running on OpenLiteSpeed.
 
